@@ -19,14 +19,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
+      - name: Install test dependencies
         run: |
           pip install pytest pytest-cov
+
+      - name: Add project to PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$PYTHONPATH:$(pwd)/ACEMID-Interim-Analysis" >> $GITHUB_ENV
 
       - name: Run tests with coverage
         working-directory: ./ACEMID-Interim-Analysis
         run: |
-          echo "Running pytest..."
           pytest \
             --cov=acemid_interim_analysis \
             --cov-branch \
