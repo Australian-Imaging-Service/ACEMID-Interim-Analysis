@@ -25,10 +25,9 @@ jobs:
 
       - name: Add project to PYTHONPATH
         run: |
-          echo "PYTHONPATH=$PYTHONPATH:$(pwd)/ACEMID-Interim-Analysis" >> $GITHUB_ENV
+          echo "PYTHONPATH=$PYTHONPATH:$(pwd)/acemid_interim_analysis" >> $GITHUB_ENV
 
       - name: Run tests with coverage
-        working-directory: ./ACEMID-Interim-Analysis
         run: |
           pytest \
             --cov=acemid_interim_analysis \
