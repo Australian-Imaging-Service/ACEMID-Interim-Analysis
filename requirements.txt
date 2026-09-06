@@ -1,0 +1,13 @@
+# Extra dependencies for the 3D-avatar visualisation (on top of the model
+# package's own requirements.txt used for inference).
+numpy>=1.24
+pandas>=1.5
+opencv-python>=4.7
+open3d>=0.17
+matplotlib>=3.6
+pillow>=9.0
+
+# Only needed for the optional full-resolution photo-texture path
+# (bake_atlas.py / fix_glb_material.py). Not required by make_avatar.sh.
+trimesh>=3.20
+pygltflib>=1.15

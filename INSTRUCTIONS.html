@@ -1,0 +1,166 @@
+<!doctype html><html><head><meta charset='utf-8'><title>3D-Avatar Visualisation Guide — photodamage-dermlip-mtl-v4</title><style>
+@page { size: A4; margin: 20mm 16mm;
+    @bottom-right { content: counter(page) " / " counter(pages); font-size: 9pt; color: #666; }
+    @bottom-left  { content: "photodamage-dermlip-mtl-v4 · 3D-Avatar Visualisation"; font-size: 9pt; color: #666; } }
+body { font-family: "Liberation Serif", "DejaVu Serif", "Times New Roman", serif;
+       font-size: 10.5pt; line-height: 1.45; color: #111; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 19pt; margin-top: 0; border-bottom: 2pt solid #4C3B8F; padding-bottom: 4pt; color: #4C3B8F; }
+h2 { font-size: 13.5pt; margin-top: 16pt; color: #4C3B8F; border-bottom: 0.5pt solid #c7bde6; padding-bottom: 2pt; }
+h3 { font-size: 11.5pt; margin-top: 11pt; color: #2f2560; }
+p  { text-align: justify; }
+hr { border: none; border-top: 0.5pt solid #c7bde6; margin: 12pt 0; }
+ul, ol { padding-left: 18pt; }
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 9.5pt; background: #efecf8; padding: 1pt 3pt; border-radius: 2pt; }
+pre { background: #efecf8; padding: 6pt 8pt; border-radius: 2pt; font-size: 9pt; white-space: pre-wrap; }
+table { border-collapse: collapse; margin: 8pt 0 12pt 0; width: 100%; font-size: 9.5pt; }
+th, td { border: 0.5pt solid #c7bde6; padding: 4pt 6pt; vertical-align: top; }
+th { background: #ddd6f0; color: #2f2560; font-weight: bold; text-align: left; border-bottom: 1.2pt solid #4C3B8F; }
+th code { background: rgba(76,59,143,0.08); color: #2f2560; }
+tr:nth-child(even) td { background: #f7f5fc; }
+blockquote { border-left: 3pt solid #4C3B8F; margin: 8pt 0; padding: 2pt 10pt; background: #f4f1fb; color: #333; }
+strong { color: #111; }
+img { max-width: 100%; height: auto; display: block; margin: 8pt auto; border: 0.5pt solid #c7bde6; border-radius: 3pt; }
+</style></head><body><h1>Sun-damage prediction on the 3D avatar</h1>
+<p>Optional visualisation add-on for the <code>photodamage-dermlip-mtl-v4</code> model. It
+takes the model's <strong>per-tile predictions</strong> and paints them onto the patient's
+<strong>Vectra 3D body avatar</strong>, producing:</p>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>raw_avatar.glb</code> / <code>.ply</code></td>
+<td>the photo-textured 3D body (no model output)</td>
+</tr>
+<tr>
+<td><code>raw_turntable.gif</code></td>
+<td>the raw avatar rotating 360°</td>
+</tr>
+<tr>
+<td><code>sundamage_avatar.glb</code> / <code>.ply</code></td>
+<td>the body coloured by predicted sun-damage severity (green→amber→red)</td>
+</tr>
+<tr>
+<td><code>sundamage_turntable.gif</code></td>
+<td>the severity avatar rotating, with a Mild→Moderate→Severe colour-bar</td>
+</tr>
+<tr>
+<td><code>sundamage_avatar_panel.png</code></td>
+<td>front/left/back/right report figure with colour-bar + caption</td>
+</tr>
+<tr>
+<td><code>sundamage_{front,left,back,right}.png</code></td>
+<td>the four still views</td>
+</tr>
+<tr>
+<td><code>vertex_severity.npy</code></td>
+<td>per-vertex severity (0–2), for custom figures</td>
+</tr>
+</tbody>
+</table>
+<p>Severity is the probability-weighted class value
+<code>severity = 1·P(moderate) + 2·P(severe) ∈ [0, 2]</code> — the same <code>severity_score</code>
+the model uses per patient, here resolved per body location.</p>
+<hr />
+<h2>What you need (prerequisites)</h2>
+<p>This is <strong>not</strong> self-contained like the tile inference — it needs the raw Vectra
+capture for the patient, because the 3D geometry and camera calibration live
+there. You must supply <strong>two inputs</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>What / where it comes from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Raw Vectra session folder</strong></td>
+<td>the patient's baseline capture dir, holding <code>&lt;session&gt;.tom</code> (3D mesh), <code>calib/*.sfcm</code> (per-camera calibration) and <code>*B.jpg</code> (46 B-view photos). In the study these are at <code>exported_data/&lt;PATIENT&gt;/&lt;SESSION&gt;/</code>. <strong>Not shipped in this model package.</strong></td>
+</tr>
+<tr>
+<td><strong>Per-tile predictions CSV</strong></td>
+<td><code>per_tile_predictions.csv</code> written by <code>run_inference.py</code> (the main package). One CSV may hold many patients — the driver slices one out by <code>patient_id</code>.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>If a session has no <code>*B.jpg</code> preview photos, point the raw-texture step (step 1)
+at a folder of the converted colour images for that patient instead.</p>
+</blockquote>
+<p>Install the extra deps (in addition to the package's <code>requirements.txt</code>):</p>
+<pre><code class="language-bash">pip install -r avatar_3d_visualization/requirements.txt
+</code></pre>
+<p><strong>How the two inputs feed the pipeline:</strong></p>
+<p><img alt="Input organisation → make_avatar.sh → outputs" src="figures/input_layout.png" /></p>
+<hr />
+<h2>Quick start (one command)</h2>
+<pre><code class="language-bash">cd avatar_3d_visualization
+bash make_avatar.sh &lt;session_dir&gt; &lt;per_tile_predictions.csv&gt; &lt;out_dir&gt; [patient_id]
+</code></pre>
+<p>Example:</p>
+<pre><code class="language-bash">bash make_avatar.sh \
+    &quot;/data/exported_data/06368481-.../20221207140356&quot; \
+    ../out/per_tile_predictions.csv \
+    ../out/avatar_7778-16  7778-16
+</code></pre>
+<p>This runs all four steps and writes every output above into <code>out_dir</code>.</p>
+<hr />
+<h2>Example outputs (patient 7778-16)</h2>
+<p>The <strong>report panel</strong> — front / left / back / right, coloured by predicted
+severity (green = mild → red = severe; grey = non-skin / not scored):</p>
+<p><img alt="Sun-damage report panel" src="figures/output_panel.png" /></p>
+<p>The two <strong>turntable GIFs</strong> (shown here as sampled frames — in the files they
+rotate a full 360°): the raw photo avatar and the severity avatar with its
+colour-bar.</p>
+<p><img alt="Raw and severity turntable frames" src="figures/output_turntable_strip.png" /></p>
+<hr />
+<h2>Step by step (what the driver runs)</h2>
+<pre><code class="language-bash"># 1. Raw photo avatar  (image_dir = session so it uses the *B.jpg photos)
+python3 texture_avatar.py   &lt;session_dir&gt; &lt;image_dir&gt; &lt;out_dir&gt;
+
+# 2. Severity avatar + still views + report panel
+python3 paint_sundamage.py  &lt;session_dir&gt; &lt;preds_csv&gt; &lt;out_dir&gt;
+
+# 3. Raw turntable gif        (`nobar` = no severity legend)
+python3 turntable_gif.py     &lt;out_dir&gt;/raw_avatar.ply        &lt;out_dir&gt;/raw_turntable.gif        48 640 960 nobar
+
+# 4. Severity turntable gif   (severity colour-bar baked in)
+python3 turntable_gif.py     &lt;out_dir&gt;/sundamage_avatar.ply  &lt;out_dir&gt;/sundamage_turntable.gif  48 640 960
+</code></pre>
+<p><code>turntable_gif.py</code> args after the output path are: <code>n_frames width height [nobar]</code>.</p>
+<hr />
+<h2>How it works</h2>
+<p><code>paint_sundamage.py</code> reuses the study's validated camera model: each mesh vertex
+is projected into every <strong>B-view</strong> camera via that camera's <code>.sfcm</code> calibration,
+occlusion-tested with an Open3D ray cast (so hidden surfaces aren't painted), and
+the visible, front-facing cameras vote. Instead of sampling the photo colour
+(that's <code>texture_avatar.py</code>), it looks up the <strong>predicted severity of the tile</strong>
+covering that pixel and blends by how squarely each camera faces the vertex.</p>
+<p>The tile lookup mirrors the cropping pipeline: the camera image is rotated
+90°/270° per camera and cut into a 5-column × 9-row grid (<code>a1</code>…<code>e9</code>), so the
+prediction CSV's <code>camera</code> + <code>grid_cell</code> map straight onto the projected pixel.</p>
+<p><strong>Predictions CSV</strong> — the packaged <code>paint_sundamage.py</code> accepts either:
+- this package's <code>per_tile_predictions.csv</code> (<code>pred_photodamage</code> string), or
+- the study's <code>04_infer_sundamage.py</code> output (numeric <code>pred</code>).
+It only needs the columns <code>patient_id, camera, grid_cell, p_mild, p_moderate,
+p_severe</code>.</p>
+<hr />
+<h2>Notes &amp; caveats</h2>
+<ul>
+<li><strong>Grey = not scored</strong> — vertices no camera could see, or that fell on a tile
+  rejected as non-skin, stay neutral grey.</li>
+<li>These meshes use <strong>per-vertex colour</strong> (unlit), so they render correctly in any
+  viewer, including Open3D. (The separate photo-<em>textured</em> atlas GLBs render dark
+  in Open3D — not used here.)</li>
+<li>The projection ignores lens distortion (<code>K1,K2</code>); it's negligible for these
+  long-focal skin cameras and was validated visually against the photo texture.</li>
+<li>Runtime is ~1–2 min per patient (mostly the two turntable renders). Lower
+  <code>n_frames</code> (e.g. 24) for smaller/faster gifs.</li>
+<li>Files carried here: <code>sfcm.py</code>, <code>tom_texture.py</code> (mesh loader), <code>texture_avatar.py</code>,
+  <code>paint_sundamage.py</code>, <code>turntable_gif.py</code>, <code>make_avatar.sh</code>.</li>
+</ul></body></html>
