@@ -1,3 +1,7 @@
+# Codecov for ACEMID Interim Analysis
+
+[![codecov](https://codecov.io/gh/Australian-Imaging-Service/acemid-interim-Analysis/branch/main/graph/badge.svg)](https://codecov.io/gh/Australian-Imaging-Service/acemid-interim-Analysis)
+
 # Sun-damage prediction on the 3D avatar
 
 Optional visualisation add-on for the `photodamage-dermlip-mtl-v4` model. It
