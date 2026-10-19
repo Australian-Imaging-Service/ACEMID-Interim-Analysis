@@ -2,12 +2,7 @@ name: ACEMID Interim Analysis Docker Image Build
 
 on:
   workflow_dispatch:
-
   push:
-    branches:
-      - main
-
-  pull_request:
     branches:
       - main
 
@@ -15,8 +10,27 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t acemid-interim-analysis .
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        run: |
+          docker build \
+            -t ghcr.io/australian-imaging-service/acemid-interim-analysis:latest \
+            .
+
+      - name: Push image
+        run: |
+          docker push \
+            ghcr.io/australian-imaging-service/acemid-interim-analysis:latest
