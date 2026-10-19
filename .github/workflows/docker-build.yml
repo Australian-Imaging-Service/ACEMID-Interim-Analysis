@@ -1,9 +1,12 @@
 name: ACEMID Interim Analysis Docker Image Build
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -13,9 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: |
-          docker build -t acemid-interim-analysis .
+        run: docker build -t acemid-interim-analysis .
